@@ -38,12 +38,11 @@ export function chordTokens(lines: Line[]): ChordToken[] {
 	return out;
 }
 
-/** Index of the chord active at `time` (last chord whose timestamp <= time), or -1. */
+/** Index of the chord active at `time` (last chord in reading order whose timestamp <= time), or -1. */
 export function activeChordIndex(sync: number[], time: number): number {
 	let idx = -1;
 	for (let i = 0; i < sync.length; i++) {
 		if (sync[i] <= time) idx = i;
-		else break;
 	}
 	return idx;
 }
@@ -92,4 +91,37 @@ export function wrapLine(line: Line, width: number): Segment[] {
 
 export function newLine(): Line {
 	return { chords: '', text: '' };
+}
+
+/**
+ * Keep sync timestamps attached to their chords when chords are added or removed.
+ * Inserted chords get `time` (the current play position) if given, otherwise the
+ * previous chord's timestamp so following chords keep theirs.
+ */
+export function adjustSync(
+	before: ChordToken[],
+	after: ChordToken[],
+	sync: number[],
+	time: number | null
+): number[] {
+	const delta = after.length - before.length;
+	if (delta === 0) return sync;
+	let k = 0;
+	while (
+		k < before.length &&
+		k < after.length &&
+		before[k].line === after[k].line &&
+		before[k].col === after[k].col
+	)
+		k++;
+	const out = [...sync];
+	if (delta < 0) {
+		out.splice(k, -delta);
+		return out;
+	}
+	if (time === null && k >= out.length) return out;
+	while (out.length < k) out.push(out.at(-1) ?? 0);
+	const t = time ?? out[k - 1] ?? 0;
+	out.splice(k, 0, ...Array<number>(delta).fill(t));
+	return out;
 }

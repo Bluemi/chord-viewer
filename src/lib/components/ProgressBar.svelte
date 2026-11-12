@@ -5,8 +5,19 @@
 		time,
 		duration,
 		markers = [],
+		playing,
+		playDisabled = false,
+		ontoggle,
 		onseek
-	}: { time: number; duration: number; markers?: number[]; onseek: (t: number) => void } = $props();
+	}: {
+		time: number;
+		duration: number;
+		markers?: number[];
+		playing: boolean;
+		playDisabled?: boolean;
+		ontoggle: () => void;
+		onseek: (t: number) => void;
+	} = $props();
 
 	let bar: HTMLDivElement;
 	let dragging = false;
@@ -21,6 +32,14 @@
 </script>
 
 <div class="progress">
+	<button
+		class="play"
+		onclick={ontoggle}
+		disabled={playDisabled}
+		title={playing ? 'Pause (Space)' : 'Play (Space)'}
+	>
+		{playing ? '❚❚' : '▶'}
+	</button>
 	<span class="time">{formatTime(time)}</span>
 	<div
 		class="bar"
@@ -62,6 +81,12 @@
 		background: var(--panel);
 		border-top: 1px solid var(--border);
 		z-index: 10;
+	}
+	.play {
+		width: 2.6rem;
+		height: 2.2rem;
+		padding: 0;
+		flex: none;
 	}
 	.time {
 		font-variant-numeric: tabular-nums;

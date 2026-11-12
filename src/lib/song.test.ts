@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createHash, createHmac } from 'node:crypto';
-import { activeChordIndex, breakColumn, chordTokens, wrapLine } from './song';
+import { activeChordIndex, adjustSync, breakColumn, chordTokens, wrapLine } from './song';
 import { loginProof } from './sha256';
 
 describe('chordTokens', () => {
@@ -44,5 +44,22 @@ describe('loginProof', () => {
 			const expected = createHmac('sha256', key).update('nonce123').digest('hex');
 			expect(loginProof(pw, 'nonce123')).toBe(expected);
 		}
+	});
+});
+
+describe('adjustSync', () => {
+	const tk = (chords: string[]) => chordTokens(chords.map((c) => ({ chords: c, text: '' })));
+	it('inserts current time for a new chord', () => {
+		expect(adjustSync(tk(['C   G']), tk(['C D G']), [1, 3], 2)).toEqual([1, 2, 3]);
+	});
+	it('appends while playing, padding unsynced chords', () => {
+		expect(adjustSync(tk(['C G']), tk(['C G A']), [1], 5)).toEqual([1, 1, 5]);
+	});
+	it('removes timestamp of deleted chord', () => {
+		expect(adjustSync(tk(['C D G']), tk(['C   G']), [1, 2, 3], null)).toEqual([1, 3]);
+	});
+	it('keeps later timestamps when not playing', () => {
+		expect(adjustSync(tk(['C   G']), tk(['C D G']), [1, 3], null)).toEqual([1, 1, 3]);
+		expect(adjustSync(tk(['C']), tk(['C D']), [1], null)).toEqual([1]);
 	});
 });

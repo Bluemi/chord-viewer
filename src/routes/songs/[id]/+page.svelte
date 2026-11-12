@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { onDestroy, onMount, untrack } from 'svelte';
-	import { beforeNavigate, goto, replaceState } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import SongSheet from '#lib/components/SongSheet.svelte';
 	import SongEditor from '#lib/components/SongEditor.svelte';
 	import ProgressBar from '#lib/components/ProgressBar.svelte';
 	import { Player } from '#lib/player.svelte.ts';
-	import { activeChordIndex, chordTokens, type Line } from '#lib/song.ts';
+	import { activeChordIndex, adjustSync, chordTokens, type Line } from '#lib/song.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -34,7 +34,8 @@
 	let charWidth = $state(9.6);
 	let measureEl: HTMLSpanElement;
 	onMount(() => {
-		if (page.url.searchParams.has('edit')) replaceState(resolve('/songs/[id]', { id }), {});
+		if (page.url.searchParams.has('edit'))
+			goto(resolve('/songs/[id]', { id }), { shallow: true, replace: true });
 		charWidth = measureEl.getBoundingClientRect().width / 10 || 9.6;
 	});
 	const cols = $derived(Math.max(16, Math.floor(sheetWidth / charWidth) - 5));
@@ -155,13 +156,17 @@
 	});
 
 	// ---- undo / redo ----
-	const snapshot = () => JSON.stringify({ title, lines });
+	const snapshot = () => JSON.stringify({ title, lines, sync });
+	let prevTokens = untrack(() => chordTokens(lines));
 	let past: string[] = $state([]);
 	let future: string[] = $state([]);
 	let current = untrack(snapshot);
 	let lastChange = 0;
 
 	function changed(record = true) {
+		// Keep timestamps attached to their chords; chords written during playback get the current time.
+		sync = adjustSync(prevTokens, tokens, sync, player.playing ? player.time : null);
+		prevTokens = tokens;
 		if (record) {
 			const now = Date.now();
 			const snap = snapshot();
@@ -181,6 +186,8 @@
 		const s = JSON.parse(snap);
 		title = s.title;
 		lines = s.lines;
+		sync = s.sync;
+		prevTokens = chordTokens(lines);
 		current = snap;
 		lastChange = 0;
 		scheduleSave();
@@ -252,7 +259,11 @@
 			}
 			return;
 		}
-		if (mode === 'edit' && mod && e.key.toLowerCase() === 'z') {
+		if (mode === 'edit' && e.key === 'Escape') {
+			e.preventDefault();
+			(document.activeElement as HTMLElement | null)?.blur();
+			toggleEdit();
+		} else if (mode === 'edit' && mod && e.key.toLowerCase() === 'z') {
 			e.preventDefault();
 			if (e.shiftKey) redo();
 			else undo();
@@ -281,9 +292,6 @@
 	<div class="toolbar">
 		<button class:on={mode === 'edit'} onclick={toggleEdit} disabled={mode === 'sync'}>
 			{mode === 'edit' ? '✓ Done' : '✎ Edit'}
-		</button>
-		<button onclick={() => player.toggle()} disabled={mode === 'sync'}>
-			{player.playing ? '❚❚ Pause' : '▶ Play'}
 		</button>
 		<label class="follow" title="Scroll along with playback">
 			<input type="checkbox" bind:checked={follow} /> Follow
@@ -332,8 +340,9 @@
 		</p>
 	{:else if mode === 'edit'}
 		<p class="hint">
-			Chord row types in overwrite mode. <kbd>Enter</kbd> splits a line, <kbd>Backspace</kbd> at the
-			start joins lines, <kbd>↑</kbd>/<kbd>↓</kbd> move between rows.
+			Chords typed during playback get the current time as timestamp. Chord row types in overwrite
+			mode. <kbd>Enter</kbd> splits a line, <kbd>Backspace</kbd> at the start joins lines,
+			<kbd>↑</kbd>/<kbd>↓</kbd> move between rows. <kbd>Esc</kbd> leaves edit mode.
 		</p>
 	{:else if tokens.length > 0 && validSync.length < tokens.length && validSync.length > 0}
 		<p class="hint">{tokens.length - validSync.length} chord(s) at the end are not synced yet.</p>
@@ -344,12 +353,22 @@
 		{#if mode === 'edit'}
 			<SongEditor bind:lines {cols} onchange={() => changed()} />
 		{:else}
-			<SongSheet {lines} {cols} {active} {next} />
+			<SongSheet
+				{lines}
+				{cols}
+				{active}
+				{next}
+				synced={validSync.length}
+				onchordclick={mode === 'sync' ? undefined : (i) => player.seek(validSync[i])}
+			/>
 		{/if}
 	</div>
 </main>
 
 <ProgressBar
+	playing={player.playing}
+	playDisabled={mode === 'sync'}
+	ontoggle={() => player.toggle()}
 	time={player.time}
 	duration={player.duration}
 	markers={mode === 'sync' ? taps : validSync}

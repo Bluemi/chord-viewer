@@ -5,8 +5,18 @@
 		lines,
 		cols,
 		active = -1,
-		next = -1
-	}: { lines: Line[]; cols: number; active?: number; next?: number } = $props();
+		next = -1,
+		synced = 0,
+		onchordclick
+	}: {
+		lines: Line[];
+		cols: number;
+		active?: number;
+		next?: number;
+		/** number of chords (from the start) that have timestamps */
+		synced?: number;
+		onchordclick?: (index: number) => void;
+	} = $props();
 
 	const tokens = $derived(chordTokens(lines));
 	const tokenAt = $derived(new Map(tokens.map((t) => [`${t.line}:${t.col}`, t.index])));
@@ -52,10 +62,13 @@
 						{#each chordParts(seg.chords) as p, k (k)}
 							{#if p.chord}
 								{@const idx = tokenAt.get(`${i}:${seg.start + p.col}`) ?? -1}
+								<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 								<span
 									class="chord"
 									class:active={idx === active}
 									class:next={idx === next}
+									class:synced={onchordclick && idx >= 0 && idx < synced}
+									onclick={() => onchordclick && idx >= 0 && idx < synced && onchordclick(idx)}
 									data-chord={idx}>{p.s}</span
 								>
 							{:else}<span>{p.s}</span>{/if}
@@ -102,6 +115,12 @@
 	.chords {
 		color: var(--chord);
 		font-weight: bold;
+	}
+	.chord.synced {
+		cursor: pointer;
+	}
+	.chord.synced:hover:not(.active) {
+		background: var(--input-focus);
 	}
 	.chord {
 		border-radius: 3px;
