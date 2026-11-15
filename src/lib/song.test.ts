@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createHash, createHmac } from 'node:crypto';
-import { activeChordIndex, adjustSync, breakColumn, chordTokens, wrapLine } from './song';
+import {
+	activeChordIndex,
+	adjustSync,
+	breakColumn,
+	chordTokens,
+	sectionHue,
+	sectionHues,
+	wrapLine
+} from './song';
 import { loginProof } from './sha256';
 
 describe('chordTokens', () => {
@@ -61,5 +69,23 @@ describe('adjustSync', () => {
 	it('keeps later timestamps when not playing', () => {
 		expect(adjustSync(tk(['C   G']), tk(['C D G']), [1, 3], null)).toEqual([1, 1, 3]);
 		expect(adjustSync(tk(['C']), tk(['C D']), [1], null)).toEqual([1]);
+	});
+});
+
+describe('sections', () => {
+	it('numbered sections share a color', () => {
+		expect(sectionHue('Verse 1')).toBe(sectionHue('verse 2'));
+		expect(sectionHue('Verse')).not.toBe(sectionHue('Chorus'));
+	});
+	it('sections run until the next one', () => {
+		const h = sectionHues([
+			{ chords: '', text: 'a' },
+			{ chords: '', text: 'b', section: 'Verse' },
+			{ chords: '', text: 'c' },
+			{ chords: '', text: 'd', section: 'Chorus' }
+		]);
+		expect(h[0]).toBeNull();
+		expect(h[2]).toBe(h[1]);
+		expect(h[3]).toBe(sectionHue('Chorus'));
 	});
 });

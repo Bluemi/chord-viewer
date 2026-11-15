@@ -22,6 +22,7 @@
 	type Mode = 'view' | 'edit' | 'sync';
 	let mode = $state<Mode>(page.url.searchParams.get('edit') ? 'edit' : 'view');
 	let follow = $state(true);
+	let showHelp = $state(false);
 
 	const player = new Player();
 	let audioEl: HTMLAudioElement | null = $state(null);
@@ -62,7 +63,7 @@
 
 	let sheetEl: HTMLElement;
 	$effect(() => {
-		const target = mode === 'sync' ? next : active;
+		const target = active;
 		if (!follow || !player.playing || target < 0 || mode === 'edit') return;
 		sheetEl
 			?.querySelector(`[data-chord="${target}"]`)
@@ -297,7 +298,7 @@
 			<input type="checkbox" bind:checked={follow} /> Follow
 		</label>
 		<button onclick={() => fileInput.click()} disabled={uploading || mode === 'sync'}>
-			{uploading ? 'Uploading…' : hasAudio ? '⇪ Replace audio' : '⇪ Upload audio'}
+			{uploading ? 'Uploading…' : '⇪ Upload Audio'}
 		</button>
 		<input type="file" accept="audio/*" hidden bind:this={fileInput} onchange={upload} />
 		{#if mode === 'edit'}
@@ -311,6 +312,9 @@
 			>
 				⏱ Sync
 			</button>
+			<button class:on={showHelp} onclick={() => (showHelp = !showHelp)} title="Editing help"
+				>?</button
+			>
 			<button class="danger" onclick={deleteSong}>Delete</button>
 		{:else if mode === 'sync'}
 			<button class="primary" onclick={finishSync}>Finish sync</button>
@@ -338,7 +342,7 @@
 			Press <kbd>Space</kbd> when chord <strong>{tokens[next]?.name}</strong> ({next +
 				1}/{tokens.length}) starts. <kbd>Backspace</kbd> undoes the last tap, <kbd>Esc</kbd> finishes.
 		</p>
-	{:else if mode === 'edit'}
+	{:else if mode === 'edit' && showHelp}
 		<p class="hint">
 			Chords typed during playback get the current time as timestamp. Chord row types in overwrite
 			mode. <kbd>Enter</kbd> splits a line, <kbd>Backspace</kbd> at the start joins lines,
@@ -357,7 +361,6 @@
 				{lines}
 				{cols}
 				{active}
-				{next}
 				synced={validSync.length}
 				onchordclick={mode === 'sync' ? undefined : (i) => player.seek(validSync[i])}
 			/>

@@ -1,6 +1,8 @@
 export interface Line {
 	chords: string;
 	text: string;
+	/** Section name (e.g. "Verse 1") starting at this line; runs until the next section. */
+	section?: string;
 }
 
 export interface Song {
@@ -124,4 +126,24 @@ export function adjustSync(
 	const t = time ?? out[k - 1] ?? 0;
 	out.splice(k, 0, ...Array<number>(delta).fill(t));
 	return out;
+}
+
+/** Hue for a section name. Trailing numbers are ignored so "Verse 1" and "Verse 2" match. */
+export function sectionHue(name: string): number {
+	const key = name
+		.trim()
+		.toLowerCase()
+		.replace(/[\s\d]+$/, '');
+	let h = 0;
+	for (const ch of key) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
+	return (h * 137) % 360;
+}
+
+/** For each line, the hue of the section it belongs to (null before the first section). */
+export function sectionHues(lines: Line[]): (number | null)[] {
+	let cur: number | null = null;
+	return lines.map((l) => {
+		if (l.section !== undefined) cur = sectionHue(l.section);
+		return cur;
+	});
 }

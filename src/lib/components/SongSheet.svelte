@@ -1,18 +1,16 @@
 <script lang="ts">
-	import { chordTokens, wrapLine, type Line } from '#lib/song.ts';
+	import { chordTokens, sectionHues, wrapLine, type Line } from '#lib/song.ts';
 
 	let {
 		lines,
 		cols,
 		active = -1,
-		next = -1,
 		synced = 0,
 		onchordclick
 	}: {
 		lines: Line[];
 		cols: number;
 		active?: number;
-		next?: number;
 		/** number of chords (from the start) that have timestamps */
 		synced?: number;
 		onchordclick?: (index: number) => void;
@@ -20,6 +18,7 @@
 
 	const tokens = $derived(chordTokens(lines));
 	const tokenAt = $derived(new Map(tokens.map((t) => [`${t.line}:${t.col}`, t.index])));
+	const hues = $derived(sectionHues(lines));
 
 	/** [start, end) text range of the active chord */
 	const activeRange = $derived.by(() => {
@@ -54,40 +53,71 @@
 
 <div class="sheet">
 	{#each lines as line, i (i)}
-		{#each wrapLine(line, cols) as seg, j (j)}
-			<div class="pair" class:cont={j > 0}>
-				<div class="num">{j === 0 ? i + 1 : ''}</div>
-				<div class="rows">
-					<div class="chords">
-						{#each chordParts(seg.chords) as p, k (k)}
-							{#if p.chord}
-								{@const idx = tokenAt.get(`${i}:${seg.start + p.col}`) ?? -1}
-								<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-								<span
-									class="chord"
-									class:active={idx === active}
-									class:next={idx === next}
-									class:synced={onchordclick && idx >= 0 && idx < synced}
-									onclick={() => onchordclick && idx >= 0 && idx < synced && onchordclick(idx)}
-									data-chord={idx}>{p.s}</span
-								>
-							{:else}<span>{p.s}</span>{/if}
-						{/each}
-					</div>
-					<div class="text">
-						{#each textParts(i, seg.start, seg.text) as p, k (k)}
-							{#if p.hl}<mark>{p.s}</mark>{:else}<span>{p.s}</span>{/if}
-						{/each}
+		<div
+			class="line"
+			class:in-section={hues[i] !== null}
+			class:section-start={line.section !== undefined}
+			style:--hue={hues[i]}
+		>
+			{#if line.section !== undefined}
+				<div class="section-name">{line.section || 'Section'}</div>
+			{/if}
+			{#each wrapLine(line, cols) as seg, j (j)}
+				<div class="pair" class:cont={j > 0}>
+					<div class="num">{j === 0 ? i + 1 : ''}</div>
+					<div class="rows">
+						<div class="chords">
+							{#each chordParts(seg.chords) as p, k (k)}
+								{#if p.chord}
+									{@const idx = tokenAt.get(`${i}:${seg.start + p.col}`) ?? -1}
+									<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+									<span
+										class="chord"
+										class:active={idx === active}
+										class:synced={onchordclick && idx >= 0 && idx < synced}
+										onclick={() => onchordclick && idx >= 0 && idx < synced && onchordclick(idx)}
+										data-chord={idx}>{p.s}</span
+									>
+								{:else}<span>{p.s}</span>{/if}
+							{/each}
+						</div>
+						<div class="text">
+							{#each textParts(i, seg.start, seg.text) as p, k (k)}
+								{#if p.hl}<mark>{p.s}</mark>{:else}<span>{p.s}</span>{/if}
+							{/each}
+						</div>
 					</div>
 				</div>
-			</div>
-		{/each}
+			{/each}
+		</div>
 	{/each}
 </div>
 
 <style>
 	.sheet {
 		font-family: var(--mono);
+	}
+	.line {
+		display: flow-root;
+		border-left: 4px solid transparent;
+		padding: 0 0.6rem 0.3rem;
+	}
+	.line.in-section {
+		border-left-color: hsl(var(--hue) 65% 52%);
+		background: hsl(var(--hue) 70% 50% / 0.07);
+	}
+	.line.section-start {
+		margin-top: 1rem;
+		border-top-right-radius: 6px;
+	}
+	.section-name {
+		font:
+			600 0.8rem system-ui,
+			sans-serif;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: hsl(var(--hue) 60% 45%);
+		padding-top: 0.5rem;
 	}
 	.pair {
 		display: flex;
@@ -129,10 +159,6 @@
 	.chord.active {
 		background: var(--accent);
 		color: var(--accent-fg);
-	}
-	.chord.next {
-		outline: 2px dashed var(--accent);
-		outline-offset: 1px;
 	}
 	.chords > *,
 	.text > * {

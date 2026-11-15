@@ -14,7 +14,13 @@ export const GET = ({ params }) => {
 function isLines(v: unknown): v is Line[] {
 	return (
 		Array.isArray(v) &&
-		v.every((l) => l && typeof l.chords === 'string' && typeof l.text === 'string')
+		v.every(
+			(l) =>
+				l &&
+				typeof l.chords === 'string' &&
+				typeof l.text === 'string' &&
+				(l.section === undefined || typeof l.section === 'string')
+		)
 	);
 }
 
@@ -24,7 +30,11 @@ export const PUT = async ({ params, request }) => {
 	if (typeof body.title === 'string') patch.title = body.title;
 	if (body.lines !== undefined) {
 		if (!isLines(body.lines)) error(400, 'Invalid lines');
-		patch.lines = body.lines.map((l: Line) => ({ chords: l.chords, text: l.text }));
+		patch.lines = body.lines.map((l: Line) => ({
+			chords: l.chords,
+			text: l.text,
+			...(typeof l.section === 'string' ? { section: l.section.slice(0, 100) } : {})
+		}));
 	}
 	if (body.sync !== undefined) {
 		if (!Array.isArray(body.sync) || !body.sync.every((t: unknown) => typeof t === 'number'))

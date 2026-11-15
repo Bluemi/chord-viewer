@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { breakColumn, type Line } from '#lib/song.ts';
+	import { breakColumn, sectionHues, type Line } from '#lib/song.ts';
 
 	type Row = 'chords' | 'text';
 
@@ -11,6 +11,24 @@
 	}: { lines: Line[]; cols: number; onchange: () => void } = $props();
 
 	const els: Record<Row, HTMLInputElement[]> = $state({ chords: [], text: [] });
+	const sectionEls: HTMLInputElement[] = $state([]);
+	const hues = $derived(sectionHues(lines));
+
+	const sec = (s: string | undefined) => (s === undefined ? {} : { section: s });
+
+	async function addSection(i: number) {
+		lines[i] = { ...lines[i], section: '' };
+		onchange();
+		await tick();
+		sectionEls[i]?.focus();
+	}
+
+	function removeSection(i: number) {
+		const l = { ...lines[i] };
+		delete l.section;
+		lines[i] = l;
+		onchange();
+	}
 
 	async function focusAt(i: number, row: Row, col: number) {
 		await tick();
@@ -32,7 +50,7 @@
 			lines.splice(
 				i,
 				1,
-				{ chords: l.chords.slice(0, b).trimEnd(), text: l.text.slice(0, b) },
+				{ chords: l.chords.slice(0, b).trimEnd(), text: l.text.slice(0, b), ...sec(l.section) },
 				{
 					chords: l.chords.slice(b),
 					text: l.text.slice(b)
@@ -64,7 +82,7 @@
 			lines.splice(
 				i,
 				1,
-				{ chords: l.chords.slice(0, c).trimEnd(), text: l.text.slice(0, c) },
+				{ chords: l.chords.slice(0, c).trimEnd(), text: l.text.slice(0, c), ...sec(l.section) },
 				{
 					chords: l.chords.slice(c),
 					text: l.text.slice(c)
@@ -79,7 +97,8 @@
 			const m = Math.max(prev.chords.length, prev.text.length);
 			lines.splice(i - 1, 2, {
 				chords: (prev.chords.padEnd(m) + cur.chords).trimEnd(),
-				text: prev.text.padEnd(cur.text ? m : prev.text.length) + cur.text
+				text: prev.text.padEnd(cur.text ? m : prev.text.length) + cur.text,
+				...sec(prev.section)
 			});
 			focusAt(i - 1, row, m);
 			onchange();
@@ -90,7 +109,8 @@
 			const m = Math.max(cur.chords.length, cur.text.length);
 			lines.splice(i, 2, {
 				chords: (cur.chords.padEnd(m) + nxt.chords).trimEnd(),
-				text: cur.text.padEnd(nxt.text ? m : cur.text.length) + nxt.text
+				text: cur.text.padEnd(nxt.text ? m : cur.text.length) + nxt.text,
+				...sec(cur.section)
 			});
 			focusAt(i, row, c);
 			onchange();
@@ -118,28 +138,63 @@
 
 <div class="editor">
 	{#each lines as line, i (i)}
-		<div class="pair">
-			<div class="num">{i + 1}</div>
-			<div class="rows" style:width="{cols + 1}ch">
-				<input
-					class="chords"
-					bind:this={els.chords[i]}
-					value={line.chords}
-					placeholder={i === 0 && !line.chords ? 'chords…' : ''}
-					spellcheck="false"
-					autocomplete="off"
-					oninput={(e) => oninput(i, 'chords', e)}
-					onkeydown={(e) => onkeydown(i, 'chords', e)}
-				/>
-				<input
-					class="text"
-					bind:this={els.text[i]}
-					value={line.text}
-					placeholder={i === 0 && !line.text ? 'lyrics…' : ''}
-					autocomplete="off"
-					oninput={(e) => oninput(i, 'text', e)}
-					onkeydown={(e) => onkeydown(i, 'text', e)}
-				/>
+		<div
+			class="line"
+			class:in-section={hues[i] !== null}
+			class:section-start={line.section !== undefined}
+			style:--hue={hues[i]}
+		>
+			{#if line.section !== undefined}
+				<div class="section-row">
+					<input
+						class="section-name"
+						bind:this={sectionEls[i]}
+						value={line.section}
+						placeholder="Verse, Chorus…"
+						autocomplete="off"
+						oninput={(e) => {
+							lines[i] = { ...lines[i], section: e.currentTarget.value };
+							onchange();
+						}}
+						onblur={() =>
+							!lines[i]?.section?.trim() && lines[i]?.section !== undefined && removeSection(i)}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === 'ArrowDown') {
+								e.preventDefault();
+								focusAt(i, 'chords', 0);
+							}
+						}}
+					/>
+					<button class="mini" title="Remove section" onclick={() => removeSection(i)}>×</button>
+				</div>
+			{:else}
+				<button class="mini add-section" title="Start a section here" onclick={() => addSection(i)}
+					>+ Section</button
+				>
+			{/if}
+			<div class="pair">
+				<div class="num">{i + 1}</div>
+				<div class="rows" style:width="{cols + 1}ch">
+					<input
+						class="chords"
+						bind:this={els.chords[i]}
+						value={line.chords}
+						placeholder={i === 0 && !line.chords ? 'chords…' : ''}
+						spellcheck="false"
+						autocomplete="off"
+						oninput={(e) => oninput(i, 'chords', e)}
+						onkeydown={(e) => onkeydown(i, 'chords', e)}
+					/>
+					<input
+						class="text"
+						bind:this={els.text[i]}
+						value={line.text}
+						placeholder={i === 0 && !line.text ? 'lyrics…' : ''}
+						autocomplete="off"
+						oninput={(e) => oninput(i, 'text', e)}
+						onkeydown={(e) => onkeydown(i, 'text', e)}
+					/>
+				</div>
 			</div>
 		</div>
 	{/each}
@@ -148,6 +203,53 @@
 <style>
 	.editor {
 		font-family: var(--mono);
+	}
+	.line {
+		position: relative;
+		display: flow-root;
+		border-left: 4px solid transparent;
+		padding: 0 0.6rem 0.3rem;
+	}
+	.line.in-section {
+		border-left-color: hsl(var(--hue) 65% 52%);
+		background: hsl(var(--hue) 70% 50% / 0.07);
+	}
+	.line.section-start {
+		margin-top: 1rem;
+		border-top-right-radius: 6px;
+	}
+	.section-row {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding-top: 0.5rem;
+	}
+	input.section-name {
+		font:
+			600 0.8rem system-ui,
+			sans-serif;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: hsl(var(--hue) 60% 45%);
+		width: 20ch;
+	}
+	.mini {
+		font:
+			0.75rem system-ui,
+			sans-serif;
+		padding: 0.05rem 0.4rem;
+		color: var(--muted);
+	}
+	.add-section {
+		position: absolute;
+		right: 0.3rem;
+		top: 0.4rem;
+		opacity: 0;
+		transition: opacity 0.1s;
+	}
+	.line:hover > .add-section,
+	.add-section:focus-visible {
+		opacity: 1;
 	}
 	.pair {
 		display: flex;
