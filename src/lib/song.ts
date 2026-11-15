@@ -12,6 +12,8 @@ export interface Song {
 	/** sync[i] = timestamp (seconds) of the i-th chord token in reading order */
 	sync: number[];
 	hasAudio: boolean;
+	/** Changes whenever new audio is uploaded; null if there is no audio. */
+	audioId: string | null;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -21,6 +23,7 @@ export interface SongSummary {
 	title: string;
 	updatedAt: number;
 	hasAudio: boolean;
+	audioId: string | null;
 }
 
 export interface ChordToken {

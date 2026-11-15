@@ -18,7 +18,7 @@ export const POST = async ({ params, request }) => {
 	fs.writeFileSync(path.join(audioDir, name), Buffer.from(await file.arrayBuffer()));
 	if (row.audio_file) fs.rmSync(path.join(audioDir, row.audio_file), { force: true });
 	setAudio(row.id, name, file.type || 'application/octet-stream');
-	return json({ ok: true });
+	return json({ ok: true, audioId: name });
 };
 
 export const GET = ({ params, request }) => {

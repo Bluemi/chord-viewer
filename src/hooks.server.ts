@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { SESSION_COOKIE, validSession } from '#lib/server/auth.ts';
 
-const PUBLIC = ['/login', '/api/auth/'];
+const PUBLIC = ['/login', '/api/auth/', '/api/app'];
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;

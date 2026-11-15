@@ -14,7 +14,9 @@ export default defineConfig({
 			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
 			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter()
+			adapter: adapter(),
+			// Absolute asset URLs: the offline app shell is served for every route by the service worker.
+			paths: { relative: false }
 		})
 	]
 });

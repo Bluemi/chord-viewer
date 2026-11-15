@@ -7,6 +7,7 @@
 	import SongEditor from '#lib/components/SongEditor.svelte';
 	import ProgressBar from '#lib/components/ProgressBar.svelte';
 	import { Player } from '#lib/player.svelte.ts';
+	import { cacheSong } from '#lib/offline.ts';
 	import { activeChordIndex, adjustSync, chordTokens, type Line } from '#lib/song.ts';
 	import type { PageProps } from './$types';
 
@@ -17,7 +18,7 @@
 	let lines: Line[] = $state(untrack(() => structuredClone(data.song.lines)));
 	let sync: number[] = $state(untrack(() => [...data.song.sync]));
 	let hasAudio = $state(untrack(() => data.song.hasAudio));
-	let audioVersion = $state(0);
+	let audioId = $state(untrack(() => data.song.audioId));
 
 	type Mode = 'view' | 'edit' | 'sync';
 	let mode = $state<Mode>(page.url.searchParams.get('edit') ? 'edit' : 'view');
@@ -103,7 +104,7 @@
 	}
 
 	// ---- saving ----
-	let saveState: 'saved' | 'unsaved' | 'saving' | 'error' = $state('saved');
+	let saveState: 'saved' | 'unsaved' | 'saving' | 'error' | 'offline' = $state('saved');
 	let saveTimer: ReturnType<typeof setTimeout> | undefined;
 	let dirty = false;
 
@@ -123,11 +124,12 @@
 				body: payload()
 			});
 			if (!res.ok) throw new Error(await res.text());
+			cacheSong(await res.json()).catch(console.error);
 			if (!dirty) saveState = 'saved';
 		} catch (e) {
 			console.error(e);
 			dirty = true;
-			saveState = 'error';
+			saveState = navigator.onLine ? 'error' : 'offline';
 		}
 	}
 
@@ -228,7 +230,7 @@
 			const res = await fetch(`/api/songs/${id}/audio`, { method: 'POST', body: form });
 			if (!res.ok) throw new Error(await res.text());
 			hasAudio = true;
-			audioVersion++;
+			audioId = (await res.json()).audioId;
 		} catch (err) {
 			alert(`Upload failed: ${err}`);
 		} finally {
@@ -281,11 +283,10 @@
 	}
 </script>
 
-<svelte:window {onkeydown} onbeforeunload={flushSave} />
+<svelte:window {onkeydown} onbeforeunload={flushSave} ononline={save} />
 
 {#if hasAudio}
-	<audio bind:this={audioEl} src="/api/songs/{id}/audio?v={audioVersion}" preload="metadata"
-	></audio>
+	<audio bind:this={audioEl} src="/api/songs/{id}/audio?v={audioId}" preload="metadata"></audio>
 {/if}
 
 <header>
@@ -320,7 +321,13 @@
 			<button class="primary" onclick={finishSync}>Finish sync</button>
 		{/if}
 		<span class="status {saveState}">
-			{{ saved: 'Saved', unsaved: 'Unsaved…', saving: 'Saving…', error: 'Save failed' }[saveState]}
+			{{
+				saved: 'Saved',
+				unsaved: 'Unsaved…',
+				saving: 'Saving…',
+				error: 'Save failed',
+				offline: 'Offline: will save when back online'
+			}[saveState]}
 		</span>
 	</div>
 </header>
@@ -423,7 +430,8 @@
 		font-size: 0.85rem;
 		color: var(--muted);
 	}
-	.status.error {
+	.status.error,
+	.status.offline {
 		color: var(--danger);
 	}
 	main {

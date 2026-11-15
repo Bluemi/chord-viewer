@@ -41,6 +41,7 @@ function toSong(r: Row): Song {
 		lines: JSON.parse(r.lines_json),
 		sync: JSON.parse(r.sync_json),
 		hasAudio: !!r.audio_file,
+		audioId: r.audio_file,
 		createdAt: r.created_at,
 		updatedAt: r.updated_at
 	};
@@ -54,7 +55,8 @@ export function listSongs(): SongSummary[] {
 		id: r.id,
 		title: r.title,
 		updatedAt: r.updated_at,
-		hasAudio: !!r.audio_file
+		hasAudio: !!r.audio_file,
+		audioId: r.audio_file
 	}));
 }
 

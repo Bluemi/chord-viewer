@@ -32,3 +32,4 @@ Use HTTPS if it's reachable from the internet, because the session cookie is sti
   A line that gets too long wraps into a new line pair on its own. Changes auto-save. Undo with `Ctrl+Z`, redo with `Ctrl+Shift+Z` or `Ctrl+Y`.
 - **Sync** (in edit mode): playback starts from 0. Press `Space` at each chord change, `Backspace` to undo the last tap, and `Esc` to stop.
 - **Play**: highlights the current chord and its lyric segment, and scrolls along if "Follow" is on. `Space` toggles play/pause, and the progress bar seeks.
+- **Offline**: on the song overview, ↓ downloads a song (text, chords, timestamps and audio) for offline use. ✓ means it is available offline (click to remove), ↻ means the offline copy is outdated. Offline storage needs HTTPS or localhost.
