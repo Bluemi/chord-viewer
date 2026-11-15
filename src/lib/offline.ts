@@ -102,3 +102,22 @@ export async function removeDownload(id: string) {
 		caches.open(DATA_CACHE).then((c) => c.delete(songUrl(id)))
 	]);
 }
+
+/** Download every song of a setlist (and the setlist itself) for offline use. */
+export async function downloadSetlist(
+	setlistId: string,
+	songIds: string[],
+	onProgress: (done: number, total: number) => void = () => {}
+) {
+	const data = await caches.open(DATA_CACHE);
+	for (const url of [`/api/setlists/${setlistId}`, '/api/setlists']) {
+		const r = await fetch(url, { cache: 'no-store' });
+		if (r.ok) await data.put(url, r);
+	}
+	const unique = [...new Set(songIds)];
+	for (let i = 0; i < unique.length; i++) {
+		onProgress(i, unique.length);
+		await downloadSong(unique[i]);
+	}
+	onProgress(unique.length, unique.length);
+}

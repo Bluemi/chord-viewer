@@ -46,6 +46,7 @@ Edit `config.json`:
 {
 	"password": "a long random passphrase",
 	"title": "Chord Viewer",
+	"statuses": ["Idea", "In progress", "Practicing", "Done"],
 	"dataDir": "/opt/chord-viewer/data"
 }
 ```

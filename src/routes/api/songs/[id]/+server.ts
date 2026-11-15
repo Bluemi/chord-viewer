@@ -26,7 +26,7 @@ function isLines(v: unknown): v is Line[] {
 
 export const PUT = async ({ params, request }) => {
 	const body = await request.json();
-	const patch: { title?: string; lines?: Line[]; sync?: number[] } = {};
+	const patch: { title?: string; lines?: Line[]; sync?: number[]; status?: string | null } = {};
 	if (typeof body.title === 'string') patch.title = body.title;
 	if (body.lines !== undefined) {
 		if (!isLines(body.lines)) error(400, 'Invalid lines');
@@ -40,6 +40,10 @@ export const PUT = async ({ params, request }) => {
 		if (!Array.isArray(body.sync) || !body.sync.every((t: unknown) => typeof t === 'number'))
 			error(400, 'Invalid sync');
 		patch.sync = body.sync;
+	}
+	if (body.status !== undefined) {
+		if (body.status !== null && typeof body.status !== 'string') error(400, 'Invalid status');
+		patch.status = body.status?.trim().slice(0, 50) || null;
 	}
 	const song = updateSong(params.id, patch);
 	if (!song) error(404, 'Song not found');

@@ -14,6 +14,7 @@ export interface Song {
 	hasAudio: boolean;
 	/** Changes whenever new audio is uploaded; null if there is no audio. */
 	audioId: string | null;
+	status: string | null;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -24,6 +25,7 @@ export interface SongSummary {
 	updatedAt: number;
 	hasAudio: boolean;
 	audioId: string | null;
+	status: string | null;
 }
 
 export interface ChordToken {
@@ -149,4 +151,12 @@ export function sectionHues(lines: Line[]): (number | null)[] {
 		if (l.section !== undefined) cur = sectionHue(l.section);
 		return cur;
 	});
+}
+
+export interface Setlist {
+	id: string;
+	name: string;
+	songIds: string[];
+	createdAt: number;
+	updatedAt: number;
 }

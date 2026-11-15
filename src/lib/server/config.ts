@@ -6,7 +6,11 @@ interface Config {
 	password: string;
 	dataDir: string;
 	title: string;
+	/** Selectable song statuses, in display order. */
+	statuses: string[];
 }
+
+const DEFAULT_STATUSES = ['Idea', 'In progress', 'Practicing', 'Done'];
 
 const configPath = path.resolve(process.env.CHORD_VIEWER_CONFIG ?? 'config.json');
 
@@ -23,7 +27,12 @@ function load(): Config {
 	return {
 		password: raw.password,
 		dataDir: path.resolve(path.dirname(configPath), raw.dataDir ?? './data'),
-		title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : 'Chord Viewer'
+		title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : 'Chord Viewer',
+		statuses: Array.isArray(raw.statuses)
+			? raw.statuses
+					.filter((s: unknown) => typeof s === 'string' && s.trim())
+					.map((s: string) => s.trim())
+			: DEFAULT_STATUSES
 	};
 }
 

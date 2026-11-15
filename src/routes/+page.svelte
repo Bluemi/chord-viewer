@@ -9,6 +9,8 @@
 		removeDownload,
 		type OfflineState
 	} from '#lib/offline.ts';
+	import { setSongStatus } from '#lib/api.ts';
+	import StatusSelect from '#lib/components/StatusSelect.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -16,6 +18,8 @@
 	let online = $state(true);
 	let supported = $state(false);
 	let states: Record<string, OfflineState> = $state({});
+	/** Local status overrides after changing a status on this page. */
+	let statusOf: Record<string, string | null> = $state({});
 	/** song id -> download progress 0..1 */
 	let progress: Record<string, number> = $state({});
 
@@ -65,6 +69,17 @@
 		await refreshStates();
 	}
 
+	async function changeStatus(id: string, status: string | null) {
+		const before = statusOf[id];
+		statusOf[id] = status;
+		try {
+			await setSongStatus(id, status);
+		} catch (e) {
+			statusOf[id] = before;
+			alert(e instanceof Error ? e.message : e);
+		}
+	}
+
 	async function logout() {
 		await fetch('/api/auth/logout', { method: 'POST' });
 		await goto(resolve('/login'));
@@ -79,6 +94,7 @@
 	<header>
 		<h1>Songs</h1>
 		<div class="actions">
+			<a class="button" href={resolve('/setlists')}>☰ Setlists</a>
 			<button class="primary" onclick={newSong} disabled={creating || !online}>+ New song</button>
 			<button onclick={logout} disabled={!online}>Log out</button>
 		</div>
@@ -100,6 +116,12 @@
 						{#if song.hasAudio}<span class="badge" title="Has audio">♪</span>{/if}
 						<span class="date">{fmt.format(song.updatedAt)}</span>
 					</a>
+					<StatusSelect
+						value={song.id in statusOf ? statusOf[song.id] : song.status}
+						statuses={data.statuses}
+						disabled={!online}
+						onchange={(s) => changeStatus(song.id, s)}
+					/>
 					{#if supported}
 						{#if progress[song.id] !== undefined}
 							<button class="dl" disabled>{Math.round(progress[song.id] * 100)}%</button>
@@ -196,7 +218,7 @@
 	}
 	.dl {
 		width: 2.6rem;
-		margin-right: 0.6rem;
+		margin: 0 0.6rem;
 		padding: 0.3rem 0;
 		font-size: 0.9rem;
 		font-variant-numeric: tabular-nums;

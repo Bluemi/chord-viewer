@@ -47,6 +47,19 @@
 		color: var(--fg);
 		font-family: system-ui, sans-serif;
 	}
+	:global(a.button) {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.4rem 0.8rem;
+		border: 1px solid var(--border);
+		background: var(--panel);
+		color: var(--fg);
+		border-radius: 6px;
+		text-decoration: none;
+	}
+	:global(a.button:hover) {
+		border-color: var(--accent);
+	}
 	:global(button) {
 		font: inherit;
 		padding: 0.4rem 0.8rem;
