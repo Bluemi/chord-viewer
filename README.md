@@ -20,6 +20,8 @@ pnpm build
 pnpm start   # node build, with a 500 MB upload limit (BODY_SIZE_LIMIT); PORT/HOST as usual
 ```
 
+To deploy behind Apache as a reverse proxy, see [docs/deploy-apache.md](docs/deploy-apache.md).
+
 Login uses challenge-response, so the password is never sent. The browser sends `HMAC-SHA256(SHA-256(password), nonce)` and gets back an HttpOnly session cookie that lasts 30 days.
 Use HTTPS if it's reachable from the internet, because the session cookie is still sent with every request.
 
