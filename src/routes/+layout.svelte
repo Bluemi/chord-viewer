@@ -2,12 +2,12 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 
-	let { children }: LayoutProps = $props();
+	let { children, data }: LayoutProps = $props();
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<title>Chord Viewer</title>
+	<title>{data.appTitle}</title>
 </svelte:head>
 
 {@render children()}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
 	import { loginProof } from '#lib/sha256.ts';
 
@@ -35,7 +36,7 @@
 
 <main>
 	<form onsubmit={submit}>
-		<h1>Chord Viewer</h1>
+		<h1>{page.data.appTitle}</h1>
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			type="password"

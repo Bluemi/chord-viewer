@@ -10,7 +10,7 @@ cp config.example.json config.json   # then set your password
 pnpm dev
 ```
 
-`config.json`: `password` is the login password. `dataDir` is where the SQLite DB and audio files go (default `./data`).
+`config.json`: `password` is the login password, and `title` is the browser tab title (default "Chord Viewer"). `dataDir` is where the SQLite DB and audio files go (default `./data`).
 Set `CHORD_VIEWER_CONFIG=/path/to/config.json` to use a config file somewhere else.
 
 ## Production

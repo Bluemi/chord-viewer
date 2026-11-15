@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 interface Config {
 	password: string;
 	dataDir: string;
+	title: string;
 }
 
 const configPath = path.resolve(process.env.CHORD_VIEWER_CONFIG ?? 'config.json');
@@ -21,7 +22,8 @@ function load(): Config {
 	}
 	return {
 		password: raw.password,
-		dataDir: path.resolve(path.dirname(configPath), raw.dataDir ?? './data')
+		dataDir: path.resolve(path.dirname(configPath), raw.dataDir ?? './data'),
+		title: typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : 'Chord Viewer'
 	};
 }
 

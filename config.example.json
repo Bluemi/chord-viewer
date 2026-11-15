@@ -1,4 +1,5 @@
 {
 	"password": "change-me",
+	"title": "Chord Viewer",
 	"dataDir": "./data"
 }
